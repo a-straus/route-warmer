@@ -1,15 +1,22 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import "./index.css";
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { GrazProvider, WalletType } from "graz";
+import { mainnetChains } from "./chains";
+const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <GrazProvider
+      grazOptions={{
+        chains: mainnetChains,
+        defaultWallet: WalletType.KEPLR,
+      }}
+    >
+      <App />
+    </GrazProvider>
   </React.StrictMode>
 );
 

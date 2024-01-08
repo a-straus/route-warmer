@@ -1,31 +1,26 @@
-import React, { useEffect, useMemo, useState } from "react";
-import logo from "./logo.svg";
+import { useEffect, useMemo, useState } from "react";
 import { Asset, Chain } from "./types";
 import axios from "axios";
 import "./App.css";
 import Dropdown from "./Dropdown";
-
-/**
- *
- * Users first pick their chain
- * Then they'll pick their token on that chain
- *
- * Use recommended asset endpoint to get the list of chains that you can go to
- * Once they choose which chain to go to you can query v2/transfer to get the channel
- *
- * Then we'll use the Keplr wallet SDK hopefully to do that
- *
- * You can create the packets to IBC send those specific tokens.
- * Would be great to batch the transactions together and only ask the keplr wallet to sign one of them
- */
+import AssetGrid from "./AssetGrid";
+import AssetDisplay from "./AssetDisplay";
+import useFetchDestChains from "./useFetchDestChains";
+import ChainGrid from "./ChainGrid";
+import { useSendIbcTokens, useStargateSigningClient } from "graz";
 
 function App() {
   const [chains, setChains] = useState([]);
-  const [srcChain, setSrcChain] = useState<Chain | null>({} as Chain);
-  const [srcAsset, setSrcAsset] = useState<Asset | null>({} as Asset);
+  const [srcChain, setSrcChain] = useState<Chain | null>(null);
+  const [srcAssets, setSrcAssets] = useState<Asset[]>([]);
+  const [srcAsset, setSrcAsset] = useState<Asset | null>(null);
   const [destCandidates, setDestCandidates] = useState<Chain[]>([]);
-  const [destChain, setDestChain] = useState<Chain | null>({} as Chain);
+  const [destChains, setDestChains] = useState<Chain[]>([]);
 
+  const { data: signingClient } = useStargateSigningClient();
+  const { sendIbcTokens } = useSendIbcTokens();
+
+  // fetch all chains
   useMemo(async () => {
     try {
       const response = await axios.get(
@@ -37,14 +32,27 @@ function App() {
     }
   }, []);
 
-  useMemo(() => {
+  // Reset states when srcChain changes
+  useEffect(() => {
+    setSrcAssets([]);
+    setSrcAsset(null);
+    setDestCandidates([]);
+    setDestChains([]);
+  }, [srcChain]);
+
+  // fetch assets for selected chain
+  useEffect(() => {
     const fetchTokens = async () => {
       if (srcChain) {
         try {
           const response = await axios.get(
-            `https://api.example.com/tokens?chain=${srcChain.chain_id}`
+            `https://api.skip.money/v1/fungible/assets?chain_id=${srcChain.chain_id}&native_only=true&include_no_metadata_assets=true&include_cw20_assets=false&include_evm_assets=false&client_id=route-warmer`
           );
-          setDestCandidates(response.data.chains);
+          console.log(response);
+          const assets = response?.data.chain_to_assets_map[srcChain.chain_id]?.assets;
+          if (assets) {
+            setSrcAssets(assets);
+          }
         } catch (error) {
           console.log(error);
         }
@@ -54,18 +62,55 @@ function App() {
     fetchTokens();
   }, [srcChain]);
 
+  // Reset states when srcAsset changes
+  useEffect(() => {
+    setDestCandidates([]);
+    setDestChains([]);
+  }, [srcAsset]);
+
+  // fetch candidate chains for destination
+  useEffect(() => {
+    const fetchDestChains = async () => {
+      if (srcAsset?.chain_id) {
+        try {
+          const response = await axios.get(
+            `https://api.skip.money/v1/info/chains?include_evm=false&client_id=route-warmer&exclude_chain_ids=${srcAsset.chain_id}`
+          );
+          setDestCandidates(response.data.chains);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    };
+    fetchDestChains();
+  }, [srcAsset]);
+
+  useFetchDestChains(srcChain, setDestChains);
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="text-3xl font-bold underline text-lime-300">
-          Skip Route Warmer
-          <p />
-        </h1>
+        <h1 className="text-3xl font-bold underline text-lime-300">Skip Route Warmer</h1>
         <Dropdown
-          chains={chains}
-          srcChain={srcChain}
-          setSrcChain={setSrcChain}
+          items={chains}
+          selectedItem={srcChain}
+          setSelectedItem={setSrcChain}
+          displayProperty="chain_name"
+          displayImage={true}
         />
+        {!srcAsset?.chain_id && srcChain && (
+          <>
+            <h2 className="text-xl font-bold underline text-lime-300">Select a Source Asset</h2>
+            <AssetGrid assets={srcAssets} selectAsset={setSrcAsset} />
+          </>
+        )}
+        {srcAsset?.chain_id && (
+          <>
+            <AssetDisplay asset={srcAsset} />
+            <h2 className="text-xl font-bold underline text-lime-300">Select Destination Chains</h2>
+            <ChainGrid chains={destCandidates} selectedChains={destChains} setSelectedChains={setDestChains} />
+          </>
+        )}
       </header>
     </div>
   );

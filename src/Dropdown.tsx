@@ -1,11 +1,25 @@
 import { useState } from "react";
 
-const Dropdown = ({ chains, srcChain, setSrcChain }) => {
+const Dropdown = ({
+  items,
+  selectedItem,
+  setSelectedItem,
+  displayProperty,
+  displayImage,
+}) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [imageError, setImageError] = useState({});
 
-  const handleSelectChain = (chain) => {
-    setSrcChain(chain);
+  const handleSelectItem = (item) => {
+    setSelectedItem(item);
     setShowDropdown(false);
+  };
+
+  const handleImageError = (item) => {
+    setImageError((prevError) => ({
+      ...prevError,
+      [item.chain_id || item.id]: true,
+    }));
   };
 
   return (
@@ -14,33 +28,43 @@ const Dropdown = ({ chains, srcChain, setSrcChain }) => {
         className="bg-blue-500 text-white py-2 px-4 rounded flex items-center justify-between hover:border hover:border-gray-300"
         onClick={() => setShowDropdown(!showDropdown)}
       >
-        {srcChain?.chain_name && srcChain?.logo_uri ? (
+        {displayImage &&
+        selectedItem?.logo_uri &&
+        !imageError[selectedItem.chain_id || selectedItem.id] ? (
           <img
-            src={srcChain?.logo_uri}
-            alt={srcChain?.chain_name}
-            className="h-6 w-6 mr-2" // Adjust height and width as needed
+            src={selectedItem.logo_uri}
+            alt={selectedItem[displayProperty]}
+            className="h-6 w-6 mr-2"
+            onError={() => handleImageError(selectedItem)}
           />
         ) : null}
         <span>
-          {srcChain?.chain_name ? srcChain?.chain_name : "Choose a Chain"}
+          {selectedItem ? selectedItem[displayProperty] : "Select an item"}
         </span>
         <span className="ml-2">▼</span>
       </button>
       {showDropdown && (
         <div className="absolute left-0 mt-1 py-2 w-56 bg-white rounded shadow-xl overflow-auto max-h-60">
-          {chains.map((chain) => (
+          {items.map((item) => (
             <a
-              key={chain.chain_id}
-              href="#"
+              key={item.chain_id || item.id}
               className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
-              onClick={() => handleSelectChain(chain)}
+              onClick={(e) => {
+                e.preventDefault();
+                handleSelectItem(item);
+              }}
             >
-              <img
-                src={chain.logo_uri}
-                alt={chain.chain_name}
-                className="inline-block h-6 w-6 mr-2"
-              />
-              {chain.chain_name}
+              {displayImage &&
+              item.logo_uri &&
+              !imageError[item.chain_id || item.id] ? (
+                <img
+                  src={item.logo_uri}
+                  alt={item[displayProperty]}
+                  className="inline-block h-6 w-6 mr-2"
+                  onError={() => handleImageError(item)}
+                />
+              ) : null}
+              {item[displayProperty]}
             </a>
           ))}
         </div>
