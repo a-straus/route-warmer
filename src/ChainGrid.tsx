@@ -1,10 +1,6 @@
-const ChainGrid = ({ chains, selectedChains, setSelectedChains }) => {
-  const toggleChainSelection = (chain) => {
-    if (selectedChains.includes(chain)) {
-      setSelectedChains(selectedChains.filter((c) => c.chain_id !== chain.chain_id));
-    } else {
-      setSelectedChains([...selectedChains, chain]);
-    }
+const ChainGrid = ({ chains, selectedChains, setSelectedChains, srcAsset }) => {
+  const toggleChainSelection = async (chain) => {
+    setSelectedChains([chain]);
   };
 
   return (

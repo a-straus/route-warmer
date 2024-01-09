@@ -1,14 +1,9 @@
 import { useEffect } from "react";
 import axios from "axios";
-import { Chain } from "./types";
+import { AssetsFromSourceResponse, Chain } from "./types";
+import { getFeeAsset } from "./util";
 
-const getFeeAsset = (chain: Chain | null) => {
-  if (!chain) return null;
-  const regex = /^(?!.*(?:ibc|factory)).*$/;
-  return chain.fee_assets?.find((asset) => regex.test(asset.denom)) || null;
-};
-
-const useFetchDestChains = (srcChain, chains, setDestCandidates) => {
+const useFetchDestChains = (srcChain: Chain | null, chains: Chain[], setDestCandidates) => {
   useEffect(() => {
     const fetchDestChains = async () => {
       if (srcChain && srcChain.fee_assets) {
@@ -30,12 +25,13 @@ const useFetchDestChains = (srcChain, chains, setDestCandidates) => {
             }
           );
           if (response.data.dest_assets) {
-            const destChains = Object.keys(response.data.dest_assets).map((chainId) => {
+            const { dest_assets } = response.data as AssetsFromSourceResponse;
+            const destChains = Object.keys(dest_assets).map((chainId) => {
               const chain = chains.find((chain) => chain.chain_id === chainId);
               if (!chain) return null;
               return {
                 ...chain,
-                trace: response.data.dest_assets[chainId].assets[0].trace,
+                src_denom: dest_assets[chainId].assets[0].denom,
               };
             });
             setDestCandidates(destChains);

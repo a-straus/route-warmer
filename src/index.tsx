@@ -17,7 +17,7 @@ root.render(
         defaultWallet: WalletType.KEPLR,
       }}
     >
-      <GrazTest />
+      <App />
     </GrazProvider>
   </React.StrictMode>
 );
