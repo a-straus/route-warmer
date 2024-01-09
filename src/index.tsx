@@ -5,13 +5,14 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { GrazProvider, WalletType } from "graz";
-import { mainnetChains } from "./chains";
+import { mainnetChainsArray } from "graz/chains";
+
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
   <React.StrictMode>
     <GrazProvider
       grazOptions={{
-        chains: mainnetChains,
+        chains: mainnetChainsArray,
         defaultWallet: WalletType.KEPLR,
       }}
     >

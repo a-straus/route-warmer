@@ -22,7 +22,7 @@ interface GasPriceInfo {
   low: string;
 }
 
-interface FeeAsset {
+export interface FeeAsset {
   description: string;
   denom: string;
   gas_price_info: GasPriceInfo;
@@ -36,4 +36,5 @@ export interface Chain {
   logo_uri: string;
   pfm_enabled: boolean;
   chain_type: string;
+  trace: string;
 }

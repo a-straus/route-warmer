@@ -1,62 +1,53 @@
 import { useEffect } from "react";
 import axios from "axios";
+import { Chain } from "./types";
 
-const useFetchDestChains = (srcChain, setDestCandidates) => {
+const getFeeAsset = (chain: Chain | null) => {
+  if (!chain) return null;
+  const regex = /^(?!.*(?:ibc|factory)).*$/;
+  return chain.fee_assets?.find((asset) => regex.test(asset.denom)) || null;
+};
+
+const useFetchDestChains = (srcChain, chains, setDestCandidates) => {
   useEffect(() => {
-    const fetchAssetsFromSource = async () => {
-      console.log("CALLED");
+    const fetchDestChains = async () => {
       if (srcChain && srcChain.fee_assets) {
+        const feeAsset = getFeeAsset(srcChain);
+        if (!feeAsset) return;
         try {
-          // Filter out fee assets containing 'denom' in their denom
-          const validAssets = srcChain.fee_assets.filter(
-            (asset) => !asset.denom.includes("denom")
-          );
-
-          console.log({ validAssets });
-
-          // Create requests for each valid asset
-          const requests = validAssets.map((asset) =>
-            axios.post(
-              "https://api.skip.money/v1/fungible/assets_from_source",
-              {
-                source_asset_denom: asset.denom,
-                source_asset_chain_id: srcChain.chain_id,
-                allow_multi_tx: false,
-                client_id: "skip-api-docs",
+          const response = await axios.post(
+            "https://api.skip.money/v1/fungible/assets_from_source",
+            {
+              source_asset_denom: feeAsset.denom,
+              source_asset_chain_id: srcChain.chain_id,
+              allow_multi_tx: false,
+              client_id: "route-warmer",
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
               },
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            )
+            }
           );
-
-          const responses = await Promise.all(requests);
-
-          const chainsFromResponse = responses.flatMap((response) => {
-            return Object.keys(response.data.dest_assets).map((chainId) => ({
-              chain_id: chainId,
-            }));
-          });
-
-          const uniqueChains = Array.from(
-            new Set(chainsFromResponse.map((chain) => chain.chain_id))
-          ).map((chain_id) => {
-            return {
-              chain_id,
-            };
-          });
-
-          setDestCandidates(uniqueChains);
+          if (response.data.dest_assets) {
+            const destChains = Object.keys(response.data.dest_assets).map((chainId) => {
+              const chain = chains.find((chain) => chain.chain_id === chainId);
+              if (!chain) return null;
+              return {
+                ...chain,
+                trace: response.data.dest_assets[chainId].assets[0].trace,
+              };
+            });
+            setDestCandidates(destChains);
+          }
         } catch (error) {
           console.error("Error fetching assets from source:", error);
         }
       }
     };
 
-    fetchAssetsFromSource();
-  }, [srcChain, setDestCandidates]);
+    fetchDestChains();
+  }, [srcChain, chains, setDestCandidates]);
 };
 
 export default useFetchDestChains;

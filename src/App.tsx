@@ -1,24 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
-import { Asset, Chain } from "./types";
+import { Asset, Chain, FeeAsset } from "./types";
 import axios from "axios";
 import "./App.css";
 import Dropdown from "./Dropdown";
 import AssetGrid from "./AssetGrid";
 import AssetDisplay from "./AssetDisplay";
-import useFetchDestChains from "./useFetchDestChains";
 import ChainGrid from "./ChainGrid";
-import { useSendIbcTokens, useStargateSigningClient } from "graz";
+import { useSendIbcTokens, useStargateSigningClient, useAccount, useConnect, useDisconnect, WalletType } from "graz";
+import { useFetchTokensOnChain } from "./useFetchTokensOnChain";
+import useFetchDestChains from "./useFetchDestChains";
 
 function App() {
-  const [chains, setChains] = useState([]);
+  const { data: signingClient } = useStargateSigningClient();
+  const { sendIbcTokens } = useSendIbcTokens();
+  console.log({ sendIbcTokens });
+
+  const [chains, setChains] = useState<Chain[]>([]);
   const [srcChain, setSrcChain] = useState<Chain | null>(null);
   const [srcAssets, setSrcAssets] = useState<Asset[]>([]);
   const [srcAsset, setSrcAsset] = useState<Asset | null>(null);
   const [destCandidates, setDestCandidates] = useState<Chain[]>([]);
   const [destChains, setDestChains] = useState<Chain[]>([]);
+  const [traces, setTraces] = useState<{ chain_id: string; trace: string }[]>([]);
 
-  const { data: signingClient } = useStargateSigningClient();
-  const { sendIbcTokens } = useSendIbcTokens();
+  const { data: account, isConnected } = useAccount({ chainId: srcChain?.chain_id });
+
+  const { connect, status } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  function handleConnect() {
+    return isConnected
+      ? disconnect()
+      : connect({
+          chainId: "cosmoshub-4",
+          walletType: WalletType.KEPLR,
+        });
+  }
 
   // fetch all chains
   useMemo(async () => {
@@ -36,60 +53,45 @@ function App() {
   useEffect(() => {
     setSrcAssets([]);
     setSrcAsset(null);
-    setDestCandidates([]);
     setDestChains([]);
-  }, [srcChain]);
-
-  // fetch assets for selected chain
-  useEffect(() => {
-    const fetchTokens = async () => {
-      if (srcChain) {
-        try {
-          const response = await axios.get(
-            `https://api.skip.money/v1/fungible/assets?chain_id=${srcChain.chain_id}&native_only=true&include_no_metadata_assets=true&include_cw20_assets=false&include_evm_assets=false&client_id=route-warmer`
-          );
-          console.log(response);
-          const assets = response?.data.chain_to_assets_map[srcChain.chain_id]?.assets;
-          if (assets) {
-            setSrcAssets(assets);
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      }
-    };
-
-    fetchTokens();
   }, [srcChain]);
 
   // Reset states when srcAsset changes
   useEffect(() => {
-    setDestCandidates([]);
     setDestChains([]);
   }, [srcAsset]);
 
-  // fetch candidate chains for destination
-  useEffect(() => {
-    const fetchDestChains = async () => {
-      if (srcAsset?.chain_id) {
-        try {
-          const response = await axios.get(
-            `https://api.skip.money/v1/info/chains?include_evm=false&client_id=route-warmer&exclude_chain_ids=${srcAsset.chain_id}`
-          );
-          setDestCandidates(response.data.chains);
-        } catch (error) {
-          console.log(error);
-        }
-      }
-    };
-    fetchDestChains();
-  }, [srcAsset]);
+  useFetchTokensOnChain(srcChain, setSrcAssets);
+  useFetchDestChains(srcChain, chains, setDestCandidates);
 
-  useFetchDestChains(srcChain, setDestChains);
+  const handleSendOverIBC = async () => {
+    console.log({ signingClient, srcAsset, destChains });
+    if (!signingClient || !srcAsset || !destChains.length) return;
+    if (account) {
+      await sendIbcTokens({
+        signingClient,
+        senderAddress: account.bech32Address,
+        recipientAddress: account.bech32Address,
+        transferAmount: {
+          denom: srcAsset.symbol,
+          amount: "100000000",
+        },
+        sourcePort: "transfer",
+        sourceChannel: "channel-0",
+        timeoutTimestamp: Number.parseInt(new Date(Date.now() + 5 * 60 * 1000).toISOString()),
+        fee: "auto",
+        memo: "test",
+      });
+    }
+  };
 
   return (
     <div className="App">
       <header className="App-header">
+        <div>
+          {account ? `Connected to ${account.bech32Address}` : status}
+          <button onClick={handleConnect}>{isConnected ? "Disconnect" : "Connect"}</button>
+        </div>
         <h1 className="text-3xl font-bold underline text-lime-300">Skip Route Warmer</h1>
         <Dropdown
           items={chains}
@@ -109,6 +111,7 @@ function App() {
             <AssetDisplay asset={srcAsset} />
             <h2 className="text-xl font-bold underline text-lime-300">Select Destination Chains</h2>
             <ChainGrid chains={destCandidates} selectedChains={destChains} setSelectedChains={setDestChains} />
+            <button onClick={handleSendOverIBC}>Send over IBC</button>
           </>
         )}
       </header>

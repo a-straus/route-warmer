@@ -1,11 +1,7 @@
-import React, { useState } from "react";
-
 const ChainGrid = ({ chains, selectedChains, setSelectedChains }) => {
   const toggleChainSelection = (chain) => {
     if (selectedChains.includes(chain)) {
-      setSelectedChains(
-        selectedChains.filter((c) => c.chain_id !== chain.chain_id)
-      );
+      setSelectedChains(selectedChains.filter((c) => c.chain_id !== chain.chain_id));
     } else {
       setSelectedChains([...selectedChains, chain]);
     }
@@ -23,13 +19,7 @@ const ChainGrid = ({ chains, selectedChains, setSelectedChains }) => {
           onClick={() => toggleChainSelection(chain)}
         >
           <div className="flex items-center">
-            {chain.logo_uri && (
-              <img
-                src={chain.logo_uri}
-                alt={chain.chain_name}
-                className="h-8 w-8 mr-2"
-              />
-            )}
+            {chain.logo_uri && <img src={chain.logo_uri} alt={chain.chain_name} className="h-8 w-8 mr-2" />}
             <span>{chain.chain_name}</span>
           </div>
         </div>
