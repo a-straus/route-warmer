@@ -29,7 +29,7 @@ const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displ
   return (
     <div className="relative">
       <button
-        className="bg-blue-500 text-white py-2 px-4 rounded flex items-center justify-between hover:border hover:border-gray-300"
+        className="bg-blue-500 text-white py-2 px-4 rounded-xl flex items-center justify-between hover:border hover:border-gray-300"
         onClick={() => setShowDropdown(!showDropdown)}
       >
         {displayImage && selectedItem?.logo_uri && !imageError[selectedItem.chain_id || selectedItem.id] ? (
@@ -44,7 +44,7 @@ const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displ
         <span className="ml-2">▼</span>
       </button>
       {showDropdown && (
-        <div className="absolute left-0 mt-1 py-2 w-56 bg-white rounded shadow-xl overflow-auto max-h-60">
+        <div className="absolute mt-1 bg-gray-400 rounded shadow-xl overflow-auto max-h-60 w-auto min-w-full">
           <input
             type="text"
             placeholder="Search..."
@@ -54,7 +54,7 @@ const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displ
           {sortedFilteredItems.map((item) => (
             <a
               key={item.chain_id || item.id}
-              className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+              className="block px-20 py-2 text-gray-800 hover:bg-gray-200"
               onClick={(e) => {
                 e.preventDefault();
                 handleSelectItem(item);

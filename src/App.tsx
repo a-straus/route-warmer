@@ -75,7 +75,7 @@ function App() {
       fee: {
         amount: [
           {
-            amount: "10000",
+            amount: "20000",
             denom: getFeeAsset(srcChain)?.denom as string,
           },
         ],
@@ -137,7 +137,7 @@ function App() {
             </button>
           </div>
         </div>
-        <h1 className="text-3xl font-bold underline text-lime-300">Skip Route Warmer</h1>
+        <h1 className="text-3xl font-bold underline text-lime-300 pb-5">Skip Route Warmer</h1>
         <Dropdown
           items={chains}
           selectedItem={srcChain}
@@ -156,7 +156,7 @@ function App() {
             <AssetDisplay asset={srcAsset} />
             <h2 className="text-xl font-bold underline text-lime-300">Select Destination Chains</h2>
             <ChainGrid
-              chains={destCandidates}
+              chains={destCandidates.filter((chain) => chain.chain_id !== srcChain?.chain_id)}
               selectedChains={destChains}
               setSelectedChains={setDestChains}
               srcAsset={srcAsset}

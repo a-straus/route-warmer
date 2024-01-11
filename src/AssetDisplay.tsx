@@ -8,13 +8,13 @@ const AssetDisplay = ({ asset }: { asset: Asset }) => {
       const parts = asset.denom.split("/");
       name = parts.length >= 3 ? parts[2] : asset.denom;
     }
-    return name && name.length <= 32 ? name : null; // Return null if the name is longer than 32 chars
+    return name && name.length <= 32 ? name : null;
   };
 
-  const displayName = getName(asset); // Call getName once and store the result
+  const displayName = getName(asset);
 
   if (displayName === null) {
-    return null; // Don't render anything if displayName is null
+    return null;
   }
 
   return (

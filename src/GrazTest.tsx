@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   useAccount,
   useActiveChains,
@@ -7,8 +7,6 @@ import {
   useSendIbcTokens,
   useStargateSigningClient,
 } from "graz";
-import { mainnetChainsArray } from "graz/chains";
-import type { Coin } from "@cosmjs/proto-signing";
 
 const GrazTest: React.FC = () => {
   const { data: account, isConnected } = useAccount({
