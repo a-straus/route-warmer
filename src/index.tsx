@@ -6,7 +6,6 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { GrazProvider, WalletType } from "graz";
 import { mainnetChainsArray } from "graz/chains";
-import GrazTest from "./GrazTest";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(

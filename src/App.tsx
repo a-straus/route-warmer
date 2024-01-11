@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Asset, Chain, FeeAsset } from "./types";
+import { Asset, Chain } from "./types";
 import axios from "axios";
 import "./App.css";
 import Dropdown from "./Dropdown";
@@ -20,39 +20,55 @@ function App() {
   const [destCandidates, setDestCandidates] = useState<Chain[]>([]);
   const [destChains, setDestChains] = useState<Chain[]>([]);
   const [channel, setChannel] = useState<string | null>(null);
-  // const [traces, setTraces] = useState<{ chain_id: string; trace: string }[]>([]);
 
   const { data: account, isConnected } = useAccount({ chainId: srcChain?.chain_id });
   const { data: signingClient } = useStargateSigningClient({ chainId: srcChain?.chain_id });
-  const { sendIbcTokens, error, isSuccess } = useSendIbcTokens();
-  const { connect, status } = useConnect();
+  const { sendIbcTokens } = useSendIbcTokens();
+  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
 
+  function handleSetChain(chain: Chain) {
+    if (!isConnected) connect({ chainId: chain.chain_id, walletType: WalletType.KEPLR });
+    setSrcChain(chain);
+  }
+
   function handleConnect() {
-    if (!srcChain?.chain_id) return alert("Please select a chain");
+    if (!isConnected && !srcChain?.chain_id) return alert("Please select a chain");
     return isConnected
       ? disconnect()
       : connect({
-          chainId: srcChain?.chain_id,
+          chainId: srcChain?.chain_id as string,
           walletType: WalletType.KEPLR,
         });
   }
 
-  // Send over IBC
   const handleSendOverIBC = async () => {
-    if (!srcChain) return alert("Please select a source chain");
     const recipientAddress = convertBech32Address(account?.bech32Address as string, destCandidates[0].bech32_prefix);
-    console.log({ account });
-    if (!recipientAddress) return alert("Please connect to the destination chain");
-    if (!srcChain.fee_assets) return alert("Please select a source asset");
-    if (!srcChain) return alert("Please select a source chain");
-    if (!srcAsset) return alert("Please select a source asset");
+
+    let errorMessage = "";
+    if (!srcChain) {
+      errorMessage += "Please select a source chain. ";
+    }
+    if (!recipientAddress) {
+      errorMessage += "Please connect to the destination chain. ";
+    }
+    if (!srcChain?.fee_assets) {
+      errorMessage += "Please select a source asset. ";
+    }
+    if (!srcAsset) {
+      errorMessage += "Please select a source asset. ";
+    }
+
+    if (errorMessage) {
+      alert(errorMessage.trim());
+      return;
+    }
 
     sendIbcTokens({
       signingClient,
       senderAddress: account?.bech32Address as string,
-      recipientAddress,
-      transferAmount: { amount: "1".padEnd(srcAsset.decimals + 1, "0"), denom: srcAsset?.denom as string },
+      recipientAddress: recipientAddress as string,
+      transferAmount: { amount: "1".padEnd((srcAsset as Asset).decimals + 1, "0"), denom: srcAsset?.denom as string },
       sourcePort: "transfer",
       sourceChannel: channel as string,
       timeoutTimestamp: Date.now() + 2 * 60 * 1000,
@@ -103,15 +119,29 @@ function App() {
     <div className="App">
       <header className="App-header">
         <div>
-          {account ? `Connected to ${account.bech32Address}` : status}
-          {/* {account ? `osmo address is ${convertBech32Address(account.bech32Address, "osmo")}` : null} */}
-          <button onClick={handleConnect}>{isConnected ? "Disconnect" : "Connect"}</button>
+          <div className="absolute top-0 right-0 mt-4 mr-4">
+            <div className="mb-4">
+              {account && (
+                <span className="text-green-500 font-semibold">
+                  Connected to {`${account.bech32Address.split("1")[0]}...${account.bech32Address.slice(-3)}`}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleConnect}
+              className={`block w-full px-4 py-2 text-white font-bold rounded-lg focus:outline-none ${
+                isConnected ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+              }`}
+            >
+              {isConnected ? "Disconnect" : "Connect"}
+            </button>
+          </div>
         </div>
         <h1 className="text-3xl font-bold underline text-lime-300">Skip Route Warmer</h1>
         <Dropdown
           items={chains}
           selectedItem={srcChain}
-          setSelectedItem={setSrcChain}
+          setSelectedItem={handleSetChain}
           displayProperty="chain_name"
           displayImage={true}
         />

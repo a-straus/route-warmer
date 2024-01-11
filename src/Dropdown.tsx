@@ -2,6 +2,7 @@ import { useState } from "react";
 
 const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displayImage }) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [imageError, setImageError] = useState({});
 
   const handleSelectItem = (item) => {
@@ -16,12 +17,14 @@ const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displ
     }));
   };
 
-  // Sort items by chain_id alphabetically
-  const sortedItems = items.sort((a, b) => {
-    const chainIdA = a.chain_name || a.id;
-    const chainIdB = b.chain_name || b.id;
-    return chainIdA.localeCompare(chainIdB);
-  });
+  // Sort and filter items
+  const sortedFilteredItems = items
+    .filter((item) => item[displayProperty].toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const chainIdA = a.chain_name || a.id;
+      const chainIdB = b.chain_name || b.id;
+      return chainIdA.localeCompare(chainIdB);
+    });
 
   return (
     <div className="relative">
@@ -37,12 +40,18 @@ const Dropdown = ({ items, selectedItem, setSelectedItem, displayProperty, displ
             onError={() => handleImageError(selectedItem)}
           />
         ) : null}
-        <span>{selectedItem ? selectedItem[displayProperty] : "Select an item"}</span>
+        <span>{selectedItem ? selectedItem[displayProperty] : "Select a Chain"}</span>
         <span className="ml-2">▼</span>
       </button>
       {showDropdown && (
         <div className="absolute left-0 mt-1 py-2 w-56 bg-white rounded shadow-xl overflow-auto max-h-60">
-          {sortedItems.map((item) => (
+          <input
+            type="text"
+            placeholder="Search..."
+            className="mb-2 p-1 w-full border border-gray-300 rounded text-gray-800 pl-3"
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {sortedFilteredItems.map((item) => (
             <a
               key={item.chain_id || item.id}
               className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
